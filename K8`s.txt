@@ -1,0 +1,88 @@
+Here’s a step-by-step sequence to set up an Ubuntu EC2 instance, install necessary tools, create an EKS cluster, and set up NodeGroup.
+
+1. Launch Ubuntu EC2 Instance
+Go to AWS Console → EC2 → Launch Instance.
+Select Ubuntu 22.04 LTS as the AMI.
+Choose an instance type (t3.medium recommended).
+Attach an IAM Role with permissions:
+AmazonEC2FullAccess
+AmazonEKSClusterPolicy
+AmazonEKSWorkerNodePolicy
+AmazonS3FullAccess
+Configure Security Groups:
+Allow SSH (22), HTTPS (443), and necessary ports.
+Launch the instance.
+2. SSH into the Instance
+sh
+Copy
+Edit
+ssh -i your-key.pem ubuntu@your-ec2-public-ip
+3. Install Dependencies
+sh
+Copy
+Edit
+sudo apt update && sudo apt install unzip -y
+4. Install AWS CLI
+sh
+Copy
+Edit
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version  # Verify installation
+5. Install eksctl
+sh
+Copy
+Edit
+curl -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+eksctl version  # Verify installation
+6. Install kubectl
+sh
+Copy
+Edit
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+kubectl version --client  # Verify installation
+7. Create an EKS Cluster
+sh
+Copy
+Edit
+eksctl create cluster --name mycluster --version 1.28 \
+  --zones us-east-1a,us-east-1b,us-east-1c --without-nodegroup
+8. Associate IAM OIDC Provider
+sh
+Copy
+Edit
+eksctl utils associate-iam-oidc-provider \
+  --region us-east-1 --cluster mycluster --approve
+9. Create NodeGroup
+sh
+Copy
+Edit
+eksctl create nodegroup --cluster=mycluster --region=us-east-1 \
+  --name=mycluster-ng-1 --node-type=t2.micro \
+  --nodes=2 --nodes-min=2 --nodes-max=4 --node-volume-size=20 \
+  --ssh-access --ssh-public-key=corp_key \
+  --managed --asg-access --external-dns-access --full-ecr-access \
+  --appmesh-access --alb-ingress-access
+10. Verify Cluster & NodeGroup
+sh
+Copy
+Edit
+eksctl get clusters
+eksctl get nodegroup --cluster mycluster
+11. Delete NodeGroup (if needed)
+sh
+Copy
+Edit
+eksctl delete nodegroup --cluster mycluster --name mycluster-ng-1
+✅ Your EKS Cluster is Now Ready! 🚀
+This script sets up an EKS cluster with a NodeGroup in AWS on an Ubuntu EC2 instance. Let me know if you need any modifications! 🎯
+
+
+
+
+
+
+
